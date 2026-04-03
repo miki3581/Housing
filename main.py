@@ -1,6 +1,6 @@
 from data_loader import load_data
 from preprocess import clean_data, encode_features
-from model import split_data, scale_data, train_linear_regression
+from model import split_data, scale_data, train_linear_regression, evaluate_model
 
 def main():
     # --- Configuration ---
@@ -32,5 +32,12 @@ def main():
     # Training Linear Regression model
     model = train_linear_regression(X_train_scaled, y_train)
     
+    # Evaluating model
+    metrics = evaluate_model(model, X_test_scaled, y_test)
+    
+    print(f"Mean Absolute Error (MAE): {metrics['MAE']:,.2f} PLN")
+    print(f"Root Mean Squared Error (RMSE): {metrics['RMSE']:,.2f} PLN")
+    print(f"R-squared (R2): {metrics['R2']:.4f}")
+
 if __name__ == "__main__":
     main()
