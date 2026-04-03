@@ -40,13 +40,13 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
 
     # floor - median depending on building type and floorCount
     if 'floor' in df_cleaned.columns and 'floorCount' in df_cleaned.columns and 'type' in df_cleaned.columns:
-        # 1. Most precise: median for a specific building type and specific floor count
+        # Most precise - median for a specific building type and specific floor count
         df_cleaned['floor'] = df_cleaned.groupby(['type', 'floorCount'])['floor'].transform(lambda x: x.fillna(x.median()))
         
-        # 2. Fallback: median for specific floor count regardless of building type
+        # Fallback - median for specific floor count regardless of building type
         df_cleaned['floor'] = df_cleaned.groupby('floorCount')['floor'].transform(lambda x: x.fillna(x.median()))
         
-        # 3. Ultimate fallback: overall median
+        # Ultimate fallback - overall median
         df_cleaned['floor'] = df_cleaned['floor'].fillna(df_cleaned['floor'].median())
 
     return df_cleaned
