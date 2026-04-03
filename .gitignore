@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+.venv
+
+.vscode/
+.idea/
+
+.cache/
+
+.DS_Store
+Thumbs.db
+
+kaggle.json
