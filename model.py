@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -61,3 +61,30 @@ def evaluate_feature_importance(model: LinearRegression, feature_names: pd.Index
     })
     
     return importance_df.sort_values(by='Coefficient', ascending=False)
+
+# Cross-validation evaluation
+def evaluate_with_cross_validation(df: pd.DataFrame, target_col: str = 'price', n_splits: int = 5) -> dict:
+    """
+    Performs K-Fold cross-validation ensuring that scaling happens independently inside each fold
+    to prevent data leakage.
+    """
+    X = df.drop(columns=[target_col])
+    y = df[target_col]
+    
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+    
+    mae_scores, rmse_scores, r2_scores = [], [], []
+    
+    for train_index, test_index in kf.split(X):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+        
+        X_train_scaled, X_test_scaled = scale_data(X_train, X_test)
+        model = train_linear_regression(X_train_scaled, y_train)
+        metrics = evaluate_model(model, X_test_scaled, y_test)
+        
+        mae_scores.append(metrics['MAE'])
+        rmse_scores.append(metrics['RMSE'])
+        r2_scores.append(metrics['R2'])
+        
+    return {'MAE': np.mean(mae_scores), 'RMSE': np.mean(rmse_scores), 'R2': np.mean(r2_scores)}
