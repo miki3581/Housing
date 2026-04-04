@@ -1,6 +1,7 @@
 from data_loader import load_data
 from preprocess import clean_data, engineer_features, encode_features
 from model import split_data, scale_data, train_linear_regression, evaluate_model
+from visualize import plot_actual_vs_predicted, plot_residuals, plot_residuals_vs_predicted
 
 def main():
     # --- Configuration ---
@@ -41,6 +42,14 @@ def main():
     print(f"Mean Absolute Error (MAE): {metrics['MAE']:.2f} PLN")
     print(f"Root Mean Squared Error (RMSE): {metrics['RMSE']:.2f} PLN")
     print(f"R-squared (R2): {metrics['R2']:.4f}")
+    
+    # Visualisation
+    y_pred = model.predict(X_test_scaled)
+    plot_actual_vs_predicted(y_test, y_pred, TARGET_CITY)
+    
+    plot_residuals(y_test, y_pred, TARGET_CITY)
+
+    plot_residuals_vs_predicted(y_test, y_pred, TARGET_CITY)
 
 if __name__ == "__main__":
     main()
