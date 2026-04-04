@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import joblib
 
 # Splitting data into train and test sets
 def split_data(df: pd.DataFrame, target_col: str = 'price', test_size: float = 0.2, random_state: int = 42):
@@ -32,7 +33,7 @@ def scale_data(X_train: pd.DataFrame, X_test: pd.DataFrame):
     X_train_scaled[continuous_cols] = scaler.fit_transform(X_train[continuous_cols])
     X_test_scaled[continuous_cols] = scaler.transform(X_test[continuous_cols])
     
-    return X_train_scaled, X_test_scaled
+    return X_train_scaled, X_test_scaled, scaler
 
 # Train Linear Regression model
 def train_linear_regression(X_train: pd.DataFrame, y_train: pd.Series):
@@ -64,10 +65,7 @@ def evaluate_feature_importance(model: LinearRegression, feature_names: pd.Index
 
 # Cross-validation evaluation
 def evaluate_with_cross_validation(df: pd.DataFrame, target_col: str = 'price', n_splits: int = 5) -> dict:
-    """
-    Performs K-Fold cross-validation ensuring that scaling happens independently inside each fold
-    to prevent data leakage.
-    """
+
     X = df.drop(columns=[target_col])
     y = df[target_col]
     
@@ -79,7 +77,7 @@ def evaluate_with_cross_validation(df: pd.DataFrame, target_col: str = 'price', 
         X_train, X_test = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test = y.iloc[train_index], y.iloc[test_index]
         
-        X_train_scaled, X_test_scaled = scale_data(X_train, X_test)
+        X_train_scaled, X_test_scaled, _ = scale_data(X_train, X_test)
         model = train_linear_regression(X_train_scaled, y_train)
         metrics = evaluate_model(model, X_test_scaled, y_test)
         
@@ -88,3 +86,16 @@ def evaluate_with_cross_validation(df: pd.DataFrame, target_col: str = 'price', 
         r2_scores.append(metrics['R2'])
         
     return {'MAE': np.mean(mae_scores), 'RMSE': np.mean(rmse_scores), 'R2': np.mean(r2_scores)}
+
+# Save model to file
+def save_model(artifacts, filename: str):
+
+    joblib.dump(artifacts, filename)
+    print(f"Model successfully saved to {filename}")
+
+# Load model from file
+def load_model(filename: str):
+
+    artifacts = joblib.load(filename)
+    print(f"Model successfully loaded from {filename}")
+    return artifacts
