@@ -1,11 +1,11 @@
 from data_loader import load_data
-from preprocess import clean_data, encode_features
-from model import split_data, scale_data, train_linear_regression, evaluate_model
+from preprocess import clean_data, engineer_features, encode_features
+from model import split_data, scale_data, train_linear_regression, evaluate_model, evaluate_feature_importance
 
 def main():
     # --- Configuration ---
     # Set to 'warszawa', 'szczecin', 'gdansk', etc. or None for the whole dataset
-    TARGET_CITY = None 
+    TARGET_CITY = 'warszawa'  
     
     # Loading data
     df = load_data()
@@ -20,8 +20,11 @@ def main():
     # Cleaning data
     df_cleaned = clean_data(df)
 
+    # Feature Engineering
+    df_engineered = engineer_features(df_cleaned)
+
     # Encoding categorical features
-    df_encoded = encode_features(df_cleaned)
+    df_encoded = encode_features(df_engineered)
 
     # Splitting data into train and test sets
     X_train, X_test, y_train, y_test = split_data(df_encoded, target_col='price')
@@ -38,6 +41,15 @@ def main():
     print(f"Mean Absolute Error (MAE): {metrics['MAE']:,.2f} PLN")
     print(f"Root Mean Squared Error (RMSE): {metrics['RMSE']:,.2f} PLN")
     print(f"R-squared (R2): {metrics['R2']:.4f}")
+
+    # Evaluating feature importance
+    importance_df = evaluate_feature_importance(model, X_train_scaled.columns)
+    
+    print("\nTop 5 features that INCREASE the price most:")
+    print(importance_df.head(5).to_string(index=False))
+    
+    print("\nTop 5 features that DECREASE the price most:")
+    print(importance_df.tail(5).to_string(index=False))
 
 if __name__ == "__main__":
     main()

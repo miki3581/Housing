@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
@@ -42,9 +43,7 @@ def train_linear_regression(X_train: pd.DataFrame, y_train: pd.Series):
 
 # Evaluate model performance
 def evaluate_model(model: LinearRegression, X_test: pd.DataFrame, y_test: pd.Series) -> dict:
-    """
-    Evaluates the model using MAE, RMSE, and R2 score.
-    """
+
     y_pred = model.predict(X_test)
     
     mae = mean_absolute_error(y_test, y_pred)
@@ -52,3 +51,13 @@ def evaluate_model(model: LinearRegression, X_test: pd.DataFrame, y_test: pd.Ser
     r2 = r2_score(y_test, y_pred)
     
     return {'MAE': mae, 'RMSE': rmse, 'R2': r2}
+
+# Evaluate feature importance
+def evaluate_feature_importance(model: LinearRegression, feature_names: pd.Index) -> pd.DataFrame:
+
+    importance_df = pd.DataFrame({
+        'Feature': feature_names,
+        'Coefficient': model.coef_
+    })
+    
+    return importance_df.sort_values(by='Coefficient', ascending=False)

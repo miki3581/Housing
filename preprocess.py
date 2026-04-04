@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 # Cleaning data
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -50,6 +51,35 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
         df_cleaned['floor'] = df_cleaned['floor'].fillna(df_cleaned['floor'].median())
 
     return df_cleaned
+
+# Feature Engineering and Selection
+def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
+    df_eng = df.copy()
+    
+    # 1. Building Age and New Development Flag
+    if 'buildYear' in df_eng.columns:
+        df_eng['buildingAge'] = 2024 - df_eng['buildYear']
+        df_eng['isNewDevelopment'] = (df_eng['buildYear'] >= 2015).astype(int)
+        
+    # 2. Non-linear transformation for center distance using log1p (log(1 + x))
+    if 'centreDistance' in df_eng.columns:
+        df_eng['log_centreDistance'] = np.log1p(df_eng['centreDistance'])
+        
+    # 3. Floor ratio (how high up the apartment is relative to the building)
+    if 'floor' in df_eng.columns and 'floorCount' in df_eng.columns:
+        df_eng['floor_ratio'] = df_eng['floor'] / df_eng['floorCount']
+        df_eng['floor_ratio'] = df_eng['floor_ratio'].fillna(0)
+        
+    # 4. Feature Selection: Drop redundant, noisy, or replaced columns
+    cols_to_drop = [
+        'buildYear', # Replaced by buildingAge
+        'postOfficeDistance', 'kindergartenDistance', 
+        'restaurantDistance', 'collegeDistance', 'pharmacyDistance'
+    ]
+    
+    df_eng = df_eng.drop(columns=[col for col in cols_to_drop if col in df_eng.columns])
+    
+    return df_eng
 
 # Encoding features
 def encode_features(df: pd.DataFrame) -> pd.DataFrame:
