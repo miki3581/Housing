@@ -4,7 +4,6 @@ from model import split_data, scale_data, train_linear_regression, evaluate_mode
 from visualize import plot_actual_vs_predicted, plot_residuals, plot_residuals_vs_predicted
 
 def main():
-    # --- Configuration ---
     # Set to 'warszawa', 'szczecin', 'gdansk', etc. or None for the whole dataset
     TARGET_CITY = 'warszawa'  
     
