@@ -81,8 +81,8 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     
     return df_eng
 
-# Encoding features
-def encode_features(df: pd.DataFrame) -> pd.DataFrame:
+# Encoding features on training set
+def encode_features_train(df: pd.DataFrame) -> tuple:
     df_encoded = df.copy()
     
     # Remove unnecessary columns
@@ -91,10 +91,9 @@ def encode_features(df: pd.DataFrame) -> pd.DataFrame:
         
     # Encode binary variables (yes/no to 1/0)
     binary_cols = ['hasParkingSpace', 'hasBalcony', 'hasSecurity', 'hasStorageRoom']
-    binary_mapping = {'yes': 1, 'no': 0}
     for col in binary_cols:
         if col in df_encoded.columns:
-            df_encoded[col] = df_encoded[col].map(binary_mapping)
+            df_encoded[col] = df_encoded[col].map({'yes': 1, 'no': 0}).fillna(0)
             
     # One-Hot Encoding for remaining categorical variables
     categorical_cols = ['city', 'type', 'ownership', 'buildingMaterial', 'condition', 'hasElevator']
@@ -102,4 +101,23 @@ def encode_features(df: pd.DataFrame) -> pd.DataFrame:
     
     df_encoded = pd.get_dummies(df_encoded, columns=cols_to_encode, drop_first=True, dtype=int)
     
-    return df_encoded
+    return df_encoded, list(df_encoded.columns)
+
+# Encoding features on testing set
+def encode_features_test(df: pd.DataFrame, train_cols: list) -> pd.DataFrame:
+    df_encoded = df.copy()
+
+    if 'id' in df_encoded.columns:
+        df_encoded = df_encoded.drop(columns=['id'])
+
+    binary_cols = ['hasParkingSpace', 'hasBalcony', 'hasSecurity', 'hasStorageRoom']
+    for col in binary_cols:
+        if col in df_encoded.columns:
+            df_encoded[col] = df_encoded[col].map({'yes': 1, 'no': 0}).fillna(0)
+
+    categorical_cols = ['city', 'type', 'ownership', 'buildingMaterial', 'condition', 'hasElevator']
+    df_temp = pd.get_dummies(df_encoded,  columns=categorical_cols, drop_first=True, dtype=int)
+
+    x_encoded = df_temp.reindex(columns=train_cols, fill_value=0)
+
+    return x_encoded

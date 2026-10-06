@@ -2,8 +2,19 @@ import pandas as pd
 import numpy as np
 from xgboost import XGBRegressor
 from scipy.stats import randint, uniform, loguniform
-from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV, GridSearchCV, train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+import joblib
+
+def split_data(df: pd.DataFrame, 
+               target_col = 'price', 
+               test_size = 0.3, 
+               random_state = 42) -> tuple:
+    
+    X = df.drop(columns = [target_col])
+    y = df[target_col]
+
+    return train_test_split(X, y, test_size = test_size, random_state = random_state)
 
 
 def optimize_params(
@@ -61,8 +72,16 @@ def optimize_params(
     best_params = cv_search.best_params_
 
     print(f"\nBest CV MAE: {-cv_search.best_score_:.3f}")
-    print({"Best parameters:"})
-    for i, j in best_params.items():
-        print(f"{i}: {j}")
+    print("Best parameters:")
+    for k, v in best_params.items():
+        print(f"{k}: {v}")
 
     return best_model, best_params, pd.DataFrame(cv_search.cv_results_)
+
+def train_xgb_model(X: pd.DataFrame, y: pd.Series, best_params: dict, target_col: str = 'price', param_grid: dict = None) -> tuple:
+
+    model = XGBRegressor(**best_params, random_state = 42)
+
+    model.fit(X, y)
+
+    return model
