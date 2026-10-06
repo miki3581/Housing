@@ -1,15 +1,15 @@
 from data_loader import load_data
 from preprocess import clean_data, engineer_features, encode_features_train, encode_features_test
 from model import split_data, scale_data, train_linear_regression, evaluate_model, save_model, load_model
-from visualize import plot_actual_vs_predicted, plot_residuals, plot_residuals_vs_predicted
-from model_xgb import optimize_params, train_xgb_model
+from visualize import plot_actual_vs_predicted, plot_residuals, plot_residuals_vs_predicted, plot_shap_summary, feature_importance
+from model_xgb import optimize_params, load_or_train_model
 from sklearn.model_selection import train_test_split
 import pandas as pd
 
 def main():
     # Set to 'warszawa', 'szczecin', 'gdansk', etc. or None for the whole dataset
     TARGET_CITY = 'warszawa'  
-    model = 'Lin_reg'
+    model = 'XGB'
     
     # Loading data
     #df = load_data()
@@ -87,18 +87,18 @@ def main():
         X_train_XGB = df_train_encoded
         y_train_XGB = y_train.reset_index(drop = True)
 
-        # Optimizing hyperparameters
-        best_model, best_params, cv_result = optimize_params(pd.concat([X_train_XGB, y_train_XGB], axis = 1), target_col='price')
-
         # Fitting model
-        model = train_xgb_model(X_train_XGB, y_train_XGB, best_params)
+        model, feature_names = load_or_train_model(X_train_XGB, y_train_XGB, retrain=False)
 
         # Evaluation
         metrics = evaluate_model(model, df_test_encoded, y_test)
         print("\nModel Performance on Test Set:")
         for k,v in metrics.items():
             print(f' {k}: {v:.2f}')
-        
+
+        # Visualsation
+        plot_shap_summary(model, X_train_XGB, TARGET_CITY)
+        feature_importance(model)
 
 
 if __name__ == "__main__":

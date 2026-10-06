@@ -5,6 +5,8 @@ from scipy.stats import randint, uniform, loguniform
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV, train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import joblib
+from model import save_model
+from pathlib import Path
 
 def split_data(df: pd.DataFrame, 
                target_col = 'price', 
@@ -74,7 +76,7 @@ def optimize_params(
     print(f"\nBest CV MAE: {-cv_search.best_score_:.3f}")
     print("Best parameters:")
     for k, v in best_params.items():
-        print(f"{k}: {v}")
+        print(f"{k}: {v:.6f}")
 
     return best_model, best_params, pd.DataFrame(cv_search.cv_results_)
 
@@ -85,3 +87,28 @@ def train_xgb_model(X: pd.DataFrame, y: pd.Series, best_params: dict, target_col
     model.fit(X, y)
 
     return model
+
+def load_or_train_model(X: pd.DataFrame, y: pd.Series, model_path: str = 'XGB/housing_model.joblib', retrain: bool = False) -> tuple:
+
+    model_filename = Path(model_path)
+
+    if model_filename.exists() and not retrain:
+        print(f"Model found. Loading...")
+        try:
+            artifact = joblib.load(model_filename)
+            model = artifact['model']
+            feature_names = artifact.get('feature_names', None)
+
+            return model, feature_names
+        
+        except Exception as e:
+            print(f'Failed to load model')
+
+    best_model, best_params, cv_result = optimize_params(pd.concat([X, y], axis = 1), target_col='price')
+    final_model = train_xgb_model(X, y, best_params)
+    model_filename = "XGB/housing_model.joblib"
+    artifacts_to_save = {'model': final_model, 'feature_names': list(X)}
+    save_model(artifacts_to_save, model_filename)
+
+
+    return final_model, list(X.columns)
