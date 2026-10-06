@@ -23,7 +23,7 @@ def plot_actual_vs_predicted(y_true: pd.Series, y_pred: np.ndarray, target_city:
     plt.legend()
     plt.tight_layout()
     
-    filename = f"actual_vs_predicted_{city_name.lower().replace(' ', '_')}.png"
+    filename = f"Lin_reg/actual_vs_predicted_{city_name.lower().replace(' ', '_')}.png"
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"Plot saved to {filename}")
     plt.show()
@@ -48,7 +48,7 @@ def plot_residuals(y_true: pd.Series, y_pred: np.ndarray, target_city: str):
     plt.legend()
     plt.tight_layout()
     
-    filename = f"residuals_{city_name.lower().replace(' ', '_')}.png"
+    filename = f"Lin_reg/residuals_{city_name.lower().replace(' ', '_')}.png"
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"Plot saved to {filename}")
     plt.show()
@@ -73,7 +73,7 @@ def plot_residuals_vs_predicted(y_true: pd.Series, y_pred: np.ndarray, target_ci
     plt.legend()
     plt.tight_layout()
     
-    filename = f"residuals_vs_predicted_{city_name.lower().replace(' ', '_')}.png"
+    filename = f"Lin_reg/residuals_vs_predicted_{city_name.lower().replace(' ', '_')}.png"
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"Plot saved to {filename}")
     plt.show()
