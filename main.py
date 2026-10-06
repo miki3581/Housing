@@ -1,17 +1,20 @@
 from data_loader import load_data
-from preprocess import clean_data, engineer_features, encode_features
+from preprocess import clean_data, engineer_features, encode_features_train, encode_features_test
 from model import split_data, scale_data, train_linear_regression, evaluate_model, save_model, load_model
 from visualize import plot_actual_vs_predicted, plot_residuals, plot_residuals_vs_predicted
-from model_xgb import optimize_params
+from model_xgb import optimize_params, train_xgb_model
+from sklearn.model_selection import train_test_split
+import pandas as pd
 
 def main():
     # Set to 'warszawa', 'szczecin', 'gdansk', etc. or None for the whole dataset
     TARGET_CITY = 'warszawa'  
-    model = 'XGB'
+    model = 'Lin_reg'
     
     # Loading data
-    df = load_data()
-    
+    #df = load_data()
+    df = pd.read_csv("housing.csv")
+
     # Filtering by city if specified
     if TARGET_CITY:
         print(f"\nFiltering data exclusively for city: {TARGET_CITY.capitalize()}")
@@ -22,25 +25,40 @@ def main():
     # Cleaning data
     df_cleaned = clean_data(df)
 
-    # Feature Engineering
+    # Feature engeenering
     df_engineered = engineer_features(df_cleaned)
 
+    # Splitting X and y
+    X_full = df_engineered.drop(columns = ['price'])
+    y_full = df_engineered['price']
+
+    # Splitting train and test
+    X_train, X_test, y_train, y_test = train_test_split(X_full, y_full, test_size = 0.2, random_state = 42)
+
+    # Reseting indexes
+    X_train.reset_index(drop = True, inplace = True)
+    y_train.reset_index(drop = True, inplace = True)
+    X_test.reset_index(drop = True, inplace = True)
+    y_test.reset_index(drop = True, inplace = True)
+
     # Encoding categorical features
-    df_encoded = encode_features(df_engineered)
+    df_train_encoded, train_feature_col = encode_features_train(X_train)
+    df_test_encoded = encode_features_test(X_test, train_feature_col)
+    df_test_encoded = df_test_encoded.reindex(columns=df_train_encoded.columns, fill_value=0)
 
     if model == 'Lin_reg':
 
-        # Splitting data into train and test sets
-        X_train, X_test, y_train, y_test = split_data(df_encoded, target_col='price')
+        X_train_lin = df_train_encoded
+        X_test_lin = df_test_encoded
         
         # Scaling numerical features
-        X_train_scaled, X_test_scaled, scaler = scale_data(X_train, X_test)
+        X_train_scaled, X_test_scaled, scaler = scale_data(X_train_lin, X_test_lin)
 
         # Training Linear Regression model
         model = train_linear_regression(X_train_scaled, y_train)
 
         # Saving the model and the scaler as a dictionary
-        model_filename = "housing_model.joblib"
+        model_filename = "Lin_reg/housing_model.joblib"
         artifacts_to_save = {'model': model, 'scaler': scaler}
         save_model(artifacts_to_save, model_filename)
         
@@ -52,9 +70,8 @@ def main():
         # Evaluating model performance
         metrics = evaluate_model(loaded_model, X_test_scaled, y_test)
         print("\nModel Performance on Test Set:")
-        print(f"Mean Absolute Error (MAE): {metrics['MAE']:.2f} PLN")
-        print(f"Root Mean Squared Error (RMSE): {metrics['RMSE']:.2f} PLN")
-        print(f"R-squared (R2): {metrics['R2']:.4f}")
+        for k,v in metrics.items():
+            print(f' {k}: {v:.2f}')
         
         # Visualisation
         y_pred = loaded_model.predict(X_test_scaled)
@@ -65,7 +82,23 @@ def main():
         plot_residuals_vs_predicted(y_test, y_pred, TARGET_CITY)
 
     elif model == 'XGB':
-        best_model, best_params, cv_results = optimize_params(df_encoded)
+
+        # Assigning X and y training sets
+        X_train_XGB = df_train_encoded
+        y_train_XGB = y_train.reset_index(drop = True)
+
+        # Optimizing hyperparameters
+        best_model, best_params, cv_result = optimize_params(pd.concat([X_train_XGB, y_train_XGB], axis = 1), target_col='price')
+
+        # Fitting model
+        model = train_xgb_model(X_train_XGB, y_train_XGB, best_params)
+
+        # Evaluation
+        metrics = evaluate_model(model, df_test_encoded, y_test)
+        print("\nModel Performance on Test Set:")
+        for k,v in metrics.items():
+            print(f' {k}: {v:.2f}')
+        
 
 
 if __name__ == "__main__":
