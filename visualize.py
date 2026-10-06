@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np
+import shap
 
 # Visualize actual vs predicted prices
 
@@ -76,4 +77,30 @@ def plot_residuals_vs_predicted(y_true: pd.Series, y_pred: np.ndarray, target_ci
     filename = f"Lin_reg/residuals_vs_predicted_{city_name.lower().replace(' ', '_')}.png"
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"Plot saved to {filename}")
+    plt.show()
+
+def feature_importance(model):
+    importance = model.get_booster().get_score(importance_type = 'gain')
+    feature_names = model.feature_names_in_ if hasattr(model, 'feature_names_in_') else range(len(importance))
+    df_importance = pd.DataFrame({'feature': feature_names, 'importance': list(importance)})
+
+    plt.figure(figsize=(10, 8))
+    plt.barh(df_importance['feature'], df_importance['importance'])
+    plt.xlabel('Importance (Gain)')
+    plt.title('XGB Feature Importance')
+    plt.gca().invert_yaxis()
+    plt.tight_layout()
+    plt.savefig("XGB/xgb_feature_importance.png", dpi=150)
+    plt.show()
+    
+
+def plot_shap_summary(model, X_test, target_city="Warszawa"):
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X_test)
+    
+    shap.summary_plot(shap_values, X_test, feature_names=X_test.columns.tolist(), 
+                      plot_size=(10, 8), show=False)
+    plt.title(f"SHAP Values for {target_city.capitalize()}")
+    plt.tight_layout()
+    plt.savefig("XGB/xgb_shap_summary.png", dpi=150)
     plt.show()
