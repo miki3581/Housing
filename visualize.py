@@ -3,10 +3,11 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 import shap
+from xgboost import plot_importance
 
 # Visualize actual vs predicted prices
 
-def plot_actual_vs_predicted(y_true: pd.Series, y_pred: np.ndarray, target_city: str):
+def plot_actual_vs_predicted(y_true: pd.Series, y_pred: np.ndarray, target_city: str, model: str):
 
     plt.figure(figsize=(10, 6))
     sns.scatterplot(x=y_true, y=y_pred, alpha=0.6, color='blue')
@@ -24,12 +25,12 @@ def plot_actual_vs_predicted(y_true: pd.Series, y_pred: np.ndarray, target_city:
     plt.legend()
     plt.tight_layout()
     
-    filename = f"Lin_reg/actual_vs_predicted_{city_name.lower().replace(' ', '_')}.png"
+    filename = f"{model}/actual_vs_predicted_{city_name.lower().replace(' ', '_')}.png"
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"Plot saved to {filename}")
     plt.show()
 
-def plot_residuals(y_true: pd.Series, y_pred: np.ndarray, target_city: str):
+def plot_residuals(y_true: pd.Series, y_pred: np.ndarray, target_city: str, model: str):
     """
     Generates a histogram of the residuals (errors) to analyze their distribution.
     """
@@ -49,12 +50,12 @@ def plot_residuals(y_true: pd.Series, y_pred: np.ndarray, target_city: str):
     plt.legend()
     plt.tight_layout()
     
-    filename = f"Lin_reg/residuals_{city_name.lower().replace(' ', '_')}.png"
+    filename = f"{model}/residuals_{city_name.lower().replace(' ', '_')}.png"
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"Plot saved to {filename}")
     plt.show()
 
-def plot_residuals_vs_predicted(y_true: pd.Series, y_pred: np.ndarray, target_city: str):
+def plot_residuals_vs_predicted(y_true: pd.Series, y_pred: np.ndarray, target_city: str, model: str):
     """
     Generates a scatter plot of residuals vs predicted values to check for heteroscedasticity.
     """
@@ -74,27 +75,21 @@ def plot_residuals_vs_predicted(y_true: pd.Series, y_pred: np.ndarray, target_ci
     plt.legend()
     plt.tight_layout()
     
-    filename = f"Lin_reg/residuals_vs_predicted_{city_name.lower().replace(' ', '_')}.png"
+    filename = f"{model}/residuals_vs_predicted_{city_name.lower().replace(' ', '_')}.png"
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"Plot saved to {filename}")
     plt.show()
 
-def feature_importance(model):
-    importance = model.get_booster().get_score(importance_type = 'gain')
-    feature_names = model.feature_names_in_ if hasattr(model, 'feature_names_in_') else range(len(importance))
-    df_importance = pd.DataFrame({'feature': feature_names, 'importance': list(importance)})
+def feature_importance(model, target_city: str, max_features: int = 15):
 
-    plt.figure(figsize=(10, 8))
-    plt.barh(df_importance['feature'], df_importance['importance'])
-    plt.xlabel('Importance (Gain)')
-    plt.title('XGB Feature Importance')
-    plt.gca().invert_yaxis()
+    plot_importance(model, importance_type = 'gain', max_num_features = max_features)
+    plt.title(f'XGBoost feature importance')
     plt.tight_layout()
-    plt.savefig("XGB/xgb_feature_importance.png", dpi=150)
+    plt.savefig('XGB/feature_importance.png')
     plt.show()
     
 
-def plot_shap_summary(model, X_test, target_city="Warszawa"):
+def shap_summary(model, X_test, target_city: str):
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_test)
     
@@ -104,3 +99,36 @@ def plot_shap_summary(model, X_test, target_city="Warszawa"):
     plt.tight_layout()
     plt.savefig("XGB/xgb_shap_summary.png", dpi=150)
     plt.show()
+
+def shap_dependence(model, X: pd.DataFrame, target_city: str, top_k: int = 5, samples: int = 2000):
+
+    X_sample = X.sample(n=samples, random_state=42)
+    X_sample = X_sample.reset_index(drop=True)
+
+    explainer = shap.TreeExplainer(model)
+    
+    shap_values = explainer.shap_values(X_sample)
+    shap_values = np.asarray(shap_values)
+
+    feature_names = X_sample.columns.tolist()
+
+    mean_abs = np.abs(shap_values).mean(axis=0)
+    importance = pd.Series(mean_abs, index=feature_names)
+
+    top_features = importance.sort_values(ascending=False).head(top_k).index.to_list()
+
+    for feature in top_features:
+        feature_index = feature_names.index(feature)
+
+        shap.dependence_plot(
+            feature_index, 
+            shap_values, 
+            X_sample, 
+            feature_names = feature_names,
+            show=False
+        )
+
+        plt.title(f'SHAP Dependencies')
+        plt.tight_layout()
+        plt.savefig(f'XGB/dependence_{feature}.png')
+        plt.show()

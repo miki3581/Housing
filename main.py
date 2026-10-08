@@ -1,7 +1,7 @@
 from data_loader import load_data
 from preprocess import clean_data, engineer_features, encode_features_train, encode_features_test
 from model import split_data, scale_data, train_linear_regression, evaluate_model, save_model, load_model
-from visualize import plot_actual_vs_predicted, plot_residuals, plot_residuals_vs_predicted, plot_shap_summary, feature_importance
+from visualize import plot_actual_vs_predicted, plot_residuals, plot_residuals_vs_predicted, shap_summary, feature_importance, shap_dependence 
 from model_xgb import optimize_params, load_or_train_model
 from sklearn.model_selection import train_test_split
 import pandas as pd
@@ -9,7 +9,7 @@ import pandas as pd
 def main():
     # Set to 'warszawa', 'szczecin', 'gdansk', etc. or None for the whole dataset
     TARGET_CITY = 'warszawa'  
-    model = 'XGB'
+    model_type = 'XGB'
     
     # Loading data
     #df = load_data()
@@ -46,7 +46,7 @@ def main():
     df_test_encoded = encode_features_test(X_test, train_feature_col)
     df_test_encoded = df_test_encoded.reindex(columns=df_train_encoded.columns, fill_value=0)
 
-    if model == 'Lin_reg':
+    if model_type == 'Lin_reg':
 
         X_train_lin = df_train_encoded
         X_test_lin = df_test_encoded
@@ -75,13 +75,13 @@ def main():
         
         # Visualisation
         y_pred = loaded_model.predict(X_test_scaled)
-        plot_actual_vs_predicted(y_test, y_pred, TARGET_CITY)
+        plot_actual_vs_predicted(y_test, y_pred, TARGET_CITY, model_type)
         
-        plot_residuals(y_test, y_pred, TARGET_CITY)
+        plot_residuals(y_test, y_pred, TARGET_CITY, model_type)
 
-        plot_residuals_vs_predicted(y_test, y_pred, TARGET_CITY)
+        plot_residuals_vs_predicted(y_test, y_pred, TARGET_CITY, model_type)
 
-    elif model == 'XGB':
+    elif model_type == 'XGB':
 
         # Assigning X and y training sets
         X_train_XGB = df_train_encoded
@@ -97,8 +97,14 @@ def main():
             print(f' {k}: {v:.2f}')
 
         # Visualsation
-        plot_shap_summary(model, X_train_XGB, TARGET_CITY)
-        feature_importance(model)
+        y_pred = model.predict(df_test_encoded)
+        feature_importance(model, TARGET_CITY)
+        plot_actual_vs_predicted(y_test, y_pred, TARGET_CITY, model_type)
+        plot_residuals(y_test, y_pred, TARGET_CITY, model_type)
+        plot_residuals_vs_predicted(y_test, y_pred, TARGET_CITY, model_type)
+
+        shap_summary(model, X_train_XGB, TARGET_CITY)
+        shap_dependence(model, X_train_XGB, TARGET_CITY)
 
 
 if __name__ == "__main__":
