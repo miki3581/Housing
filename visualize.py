@@ -130,4 +130,5 @@ def shap_dependence(model, X: pd.DataFrame, target_city: str, top_k: int = 5, sa
 
         plt.title(f'SHAP Dependencies')
         plt.tight_layout()
+        plt.savefig(f'XGB/dependence_{feature}.png')
         plt.show()
