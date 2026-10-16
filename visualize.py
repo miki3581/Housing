@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import shap
 from xgboost import plot_importance
+import lightgbm as lgb
 
 # Visualize actual vs predicted prices
 
@@ -89,7 +90,7 @@ def feature_importance(model, target_city: str, max_features: int = 15):
     plt.show()
     
 
-def shap_summary(model, X_test, target_city: str):
+def shap_summary(model, X_test, target_city: str, model_types: str):
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_test)
     
@@ -97,7 +98,7 @@ def shap_summary(model, X_test, target_city: str):
                       plot_size=(10, 8), show=False)
     plt.title(f"SHAP Values for {target_city.capitalize()}")
     plt.tight_layout()
-    plt.savefig("XGB/xgb_shap_summary.png", dpi=150)
+    plt.savefig(f"{model_types}/shap_summary.png", dpi=150)
     plt.show()
 
 def shap_dependence(model, X: pd.DataFrame, target_city: str, top_k: int = 5, samples: int = 2000):
@@ -132,3 +133,10 @@ def shap_dependence(model, X: pd.DataFrame, target_city: str, top_k: int = 5, sa
         plt.tight_layout()
         plt.savefig(f'XGB/dependence_{feature}.png')
         plt.show()
+
+def feature_importance_lgbm(model, max_features: int = 15):
+    importance = lgb.plot_importance(model, importance_type = 'gain', max_num_features = max_features, figsize=(10, 8))
+    plt.title('LigthGBM Feature Importance')
+    plt.tight_layout()
+    plt.savefig(f'LightGBM/feature_importance.png')
+    plt.show()
