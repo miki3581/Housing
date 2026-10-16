@@ -1,15 +1,16 @@
 from data_loader import load_data
 from preprocess import clean_data, engineer_features, encode_features_train, encode_features_test
 from model import split_data, scale_data, train_linear_regression, evaluate_model, save_model, load_model
-from visualize import plot_actual_vs_predicted, plot_residuals, plot_residuals_vs_predicted, shap_summary, feature_importance, shap_dependence 
+from visualize import plot_actual_vs_predicted, plot_residuals, plot_residuals_vs_predicted, shap_summary, feature_importance, shap_dependence, feature_importance_lgbm
 from model_xgb import optimize_params, load_or_train_model
+from model_lgbm import evaluate_model_lgbm, load_model_lgbm, save_model_lgbm, load_or_train_model_lgbm, optimize_params_lgbm, sanitize_feature_names
 from sklearn.model_selection import train_test_split
 import pandas as pd
 
 def main():
     # Set to 'warszawa', 'szczecin', 'gdansk', etc. or None for the whole dataset
     TARGET_CITY = 'warszawa'  
-    model_type = 'XGB'
+    model_type = 'LightGBM'
     
     # Loading data
     #df = load_data()
@@ -103,8 +104,36 @@ def main():
         plot_residuals(y_test, y_pred, TARGET_CITY, model_type)
         plot_residuals_vs_predicted(y_test, y_pred, TARGET_CITY, model_type)
 
-        shap_summary(model, X_train_XGB, TARGET_CITY)
+        shap_summary(model, X_train_XGB, TARGET_CITY, model_type)
         shap_dependence(model, X_train_XGB, TARGET_CITY)
+
+    elif model_type == 'LightGBM':
+
+        # Renaming columns for LightGBM
+        df_train_encoded = sanitize_feature_names(df_train_encoded)
+        df_test_encoded = sanitize_feature_names(df_test_encoded)
+
+        # Assigning X and y training sets
+        X_train_lgbm = df_train_encoded
+        y_train_lgbm = y_train.reset_index(drop = True)
+
+        lgbm_model = load_or_train_model_lgbm(X_train_lgbm, y_train_lgbm, TARGET_CITY, retrain=False)
+
+        metrics = evaluate_model_lgbm(lgbm_model, df_test_encoded, y_test)
+        print(f"\nLightGBM Model Performance on Test Set:")
+        for k, v in metrics.items():
+            if k in ('MAPE', 'sMAPE'):
+                print(f' {k}: {v:.2%}')
+            else:
+                print(f' {k}: {v:,.2f}')
+
+        y_pred = lgbm_model.predict(df_test_encoded)
+        plot_actual_vs_predicted(y_test, y_pred, TARGET_CITY, model_type)
+        plot_residuals(y_test, y_pred, TARGET_CITY, model_type)
+        plot_residuals_vs_predicted(y_test, y_pred, TARGET_CITY, model_type)
+        feature_importance_lgbm(lgbm_model)
+        shap_summary(lgbm_model, X_train_lgbm, TARGET_CITY, model_type)
+        
 
 
 if __name__ == "__main__":
